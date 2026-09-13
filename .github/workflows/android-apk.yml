@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Reassemble Android source
-        run: cat bundle/part-* | base64 -d > apk-source.zip && unzip -q apk-source.zip
+        run: cat bundle-v3/part-* | base64 -d > apk-source.zip && unzip -q apk-source.zip
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -25,6 +25,6 @@ jobs:
         run: chmod +x gradlew && ./gradlew assembleDebug
       - uses: actions/upload-artifact@v4
         with:
-          name: Wildforge-Android-APK
+          name: Wildforge-v0.3-landscape
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
