@@ -1,30 +1,88 @@
-name: Inspect Wildforge v0.6 source
+name: Build Wildforge v0.6 APK
 on:
+  workflow_dispatch:
   push:
-    branches: ["codex/v0.6"]
+    branches: [main, "codex/**"]
 permissions:
   contents: read
 jobs:
-  inspect:
+  build:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
-      - name: Reassemble Android source
-        run: cat bundle-v5/part-* | base64 -d > apk-source.zip && unzip -q apk-source.zip
-      - name: Emit source snapshot
-        shell: bash
+
+      - name: Reassemble v0.5 Android source
         run: |
-          files=(
-            android/app/src/main/assets/public/index.html
-            android/app/src/main/assets/public/game.js
-            android/app/src/main/assets/public/style.css
-            android/app/src/main/assets/public/combat.css
-            android/app/src/main/assets/public/sw.js
-            android/app/build.gradle
-          )
-          for file in "${files[@]}"; do
-            echo "WILDFORGE_FILE_BEGIN:${file}"
-            base64 -w0 "${file}"
-            echo
-            echo "WILDFORGE_FILE_END:${file}"
-          done
+          cat bundle-v5/part-* | base64 -d > apk-source.zip
+          unzip -q apk-source.zip
+
+      - name: Apply v0.6 cinematic combat overlay
+        run: |
+          cp -R v6-overlay/public/. android/app/src/main/assets/public/
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          public = Path("android/app/src/main/assets/public")
+          index_path = public / "index.html"
+          index = index_path.read_text()
+          if 'href="v6.css"' not in index:
+              index = index.replace(
+                  '<link rel="stylesheet" href="combat.css">',
+                  '<link rel="stylesheet" href="combat.css"><link rel="stylesheet" href="v6.css">'
+              )
+          if 'id="fxLayer"' not in index:
+              index = index.replace(
+                  '</main><script src="game.js"></script>',
+                  '</main><div id="fxLayer" aria-hidden="true"></div><script src="game.js"></script><script src="v6.js"></script>'
+              )
+          index_path.write_text(index)
+
+          sw = """const C='wildforge-v6',F=['./','index.html','style.css','combat.css','v6.css','game.js','v6.js','manifest.webmanifest','assets/creatures.png','assets/enemies-v2.webp','assets/enemies-v6.png','assets/heroes-v6.png','assets/battle-bg.webp'];self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));"""
+          (public / "sw.js").write_text(sw)
+
+          gradle_path = Path("android/app/build.gradle")
+          gradle = gradle_path.read_text()
+          gradle = re.sub(r'versionCode\s+\d+', 'versionCode 6', gradle)
+          gradle = re.sub(r'versionName\s+"[^"]+"', 'versionName "0.6"', gradle)
+          gradle_path.write_text(gradle)
+          PY
+
+      - name: Validate web game
+        run: |
+          node --check android/app/src/main/assets/public/game.js
+          node --check android/app/src/main/assets/public/v6.js
+          grep -q 'v6.css' android/app/src/main/assets/public/index.html
+          grep -q 'v6.js' android/app/src/main/assets/public/index.html
+          test -s android/app/src/main/assets/public/assets/heroes-v6.png
+          test -s android/app/src/main/assets/public/assets/enemies-v6.png
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android dependencies
+        run: |
+          sdkmanager "platforms;android-36" "build-tools;36.0.0"
+          npm install --no-save @capacitor/android@8 @capacitor/core@8
+
+      - name: Build APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug
+
+      - name: Verify packaged v0.6 assets
+        run: |
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/v6.js'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/heroes-v6.png'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/enemies-v6.png'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Wildforge-v0.6-cinematic-combat
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

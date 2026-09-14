@@ -2,6 +2,19 @@
 
 Original Android landscape roguelike deckbuilder.
 
+## v0.6
+- Vier volledig nieuwe speelbare helden: Vexa, Myr, Korr en Zhar
+- Handgeschilderde transparante helden- en vijandensprites
+- Premium kaarten met eigen aanval-, vaardigheid- en krachtillustraties
+- Zichtbare hero lunges, casts, enemy strikes en impact-reacties
+- Zwevende schade-, Block-, Gif-, Kracht- en genezingsfeedback
+- Geanimeerde speler- en vijandenbeurten met veilige invoerblokkering
+- Vier basisenergie en duidelijke huidige/maximale energieweergave
+- Cinematische polish voor HUD, intents, health bars en kaart-hand
+- Geoptimaliseerd voor liggende Android-schermen, waaronder Galaxy S23 Ultra
+
+De v0.6-bronlaag staat in `v6-overlay/`. De GitHub Action bouwt die boven op de bewaarde v0.5 Android-bron en controleert dat alle nieuwe assets werkelijk in de APK zitten.
+
 ## v0.5
 - Vertical landscape combat hierarchy optimized for Samsung Galaxy S23 Ultra
 - HUD → enemy row → centered hero → combat piles → full hand
