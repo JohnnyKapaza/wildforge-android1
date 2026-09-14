@@ -1,30 +1,30 @@
-name: Build Wildforge APK
+name: Inspect Wildforge v0.6 source
 on:
-  workflow_dispatch:
   push:
-    branches: [main, "codex/**"]
+    branches: ["codex/v0.6"]
+permissions:
+  contents: read
 jobs:
-  build:
+  inspect:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Reassemble Android source
         run: cat bundle-v5/part-* | base64 -d > apk-source.zip && unzip -q apk-source.zip
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: gradle
-      - uses: android-actions/setup-android@v3
-      - name: Install Android dependencies
+      - name: Emit source snapshot
+        shell: bash
         run: |
-          sdkmanager "platforms;android-36" "build-tools;36.0.0"
-          npm install --no-save @capacitor/android@8 @capacitor/core@8
-      - name: Build APK
-        working-directory: android
-        run: chmod +x gradlew && ./gradlew assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Wildforge-v0.5-vertical-combat
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          files=(
+            android/app/src/main/assets/public/index.html
+            android/app/src/main/assets/public/game.js
+            android/app/src/main/assets/public/style.css
+            android/app/src/main/assets/public/combat.css
+            android/app/src/main/assets/public/sw.js
+            android/app/build.gradle
+          )
+          for file in "${files[@]}"; do
+            echo "WILDFORGE_FILE_BEGIN:${file}"
+            base64 -w0 "${file}"
+            echo
+            echo "WILDFORGE_FILE_END:${file}"
+          done
