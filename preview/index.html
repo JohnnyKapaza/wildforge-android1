@@ -1,0 +1,27 @@
+<!doctype html><html lang="nl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no"><meta name="theme-color" content="#0a1010"><link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="style.css"><link rel="stylesheet" href="combat.css"><title>Wildforge</title></head><body><main id="app">
+<section id="title" class="screen active"><div class="title-mark"><div class="logo">WILDFORGE</div><small>HEARTS OF THE HOLLOW</small></div><div class="title-actions"><button onclick="show('select')">NIEUWE RUN</button><button class="ghost" onclick="continueRun()">DOORGAAN</button><button class="ghost" onclick="showCompendium()">VERZAMELING</button></div><p class="foot">Een originele creature deckbuilder</p></section>
+<section id="select" class="screen"><div class="screen-title"><div><h1>Kies je Verbondene</h1><p>Vier helden. Vier manieren om de regels te breken.</p></div><label>Wildheid <select id="ascension"></select></label></div><div id="heroes" class="heroes"></div><button class="back ghost" onclick="show('title')">← TERUG</button></section>
+<section id="map" class="screen"><header><b id="mapHero"></b><span>♥ <b id="mapHp"></b></span><span>◈ <b id="gold"></b></span><span id="deckCount"></span><button class="tiny ghost" onclick="showDeck()">DECK</button></header><div class="map-heading"><div><h2 id="actTitle"></h2><p>Kies je route. Alleen verbonden kamers zijn bereikbaar.</p></div><div id="relicStrip"></div></div><div id="mapViewport"><svg id="mapLines" preserveAspectRatio="none"></svg><div id="mapNodes"></div></div></section>
+<section id="combat" class="screen">
+<header class="combat-hud">
+  <div class="hud-hero"><b id="combatName"></b><span class="hud-hp">♥ <b id="hp"></b>/<b id="maxHp"></b></span><span id="turnLabel"></span></div>
+  <div id="combatRelics" aria-label="Relieken"></div>
+  <div class="hud-actions"><button class="tiny ghost" onclick="usePotion()" aria-label="Gebruik potion">🧪 <b id="potionCount">0</b></button><button class="tiny ghost" onclick="showDeck(true)">DECK</button><button class="tiny ghost settings-button" onclick="toggleCombatSettings()" aria-label="Instellingen">⚙</button></div>
+</header>
+<div id="combatSettings" class="settings-popover hidden"><b>INSTELLINGEN</b><button id="soundToggle" class="tiny ghost" onclick="toggleSound()">GELUID AAN</button><button class="tiny ghost" onclick="toggleCombatSettings()">SLUIT</button></div>
+<div class="battle-stack">
+  <div id="enemyZone" class="enemy-zone"><div id="enemies" class="enemies"></div><div id="aoeTarget" class="aoe-target">ALLE VIJANDEN</div></div>
+  <div class="hero-zone"><div id="combatTip">Sleep een kaart omhoog</div><div class="fighter player"><div id="playerSprite" class="sprite"></div><div class="nameplate"><b id="playerName"></b><div class="health player-health"><i id="playerBar"></i><span id="playerHpText"></span></div><div id="playerFx" class="status"></div></div></div><button id="endTurn" onclick="endTurn()">EINDE<br>BEURT</button></div>
+</div>
+<div class="combat-resources"><div class="pile"><b id="drawCount">0</b><small>TREK</small></div><div class="energy-orb"><b id="energy"></b><small>ENERGIE</small></div><div class="pile"><b id="discardCount">0</b><small>AFLEG</small></div><div class="pile exhaust"><b id="exhaustCount">0</b><small>EXHAUST</small></div></div>
+<div id="hand" class="hand" aria-label="Handkaarten"></div>
+<svg id="targetingLayer" aria-hidden="true"><defs><marker id="targetArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z"></path></marker></defs><path id="targetingPath"></path></svg>
+<div id="log"></div>
+</section>
+<section id="reward" class="screen modal-screen"><h1>Overwinning</h1><p>Kies één kaart om aan je deck toe te voegen.</p><div id="rewards" class="cards"></div><button class="ghost" onclick="skipReward()">OVERSLAAN</button></section>
+<section id="choice" class="screen modal-screen"><h1 id="choiceTitle"></h1><p id="choiceText"></p><div id="choices" class="choices"></div></section>
+<section id="shop" class="screen"><header><b>De Kraaienkoopman</b><span>◈ <b id="shopGold"></b></span></header><div class="screen-title"><div><h1>Curiosa & kaarten</h1><p>Een kleiner deck trekt zijn beste kaarten vaker.</p></div><button onclick="removeCardShop()">VERWIJDER — <span id="removeCost"></span> ◈</button></div><div id="wares" class="cards"></div><button class="back ghost" onclick="leaveNode()">VERTREK</button></section>
+<section id="deck" class="screen"><div class="screen-title"><div><h1>Jouw deck</h1><p id="deckInfo"></p></div><button class="ghost" onclick="closeDeck()">SLUITEN</button></div><div id="deckCards" class="cards wrap"></div></section>
+<section id="compendium" class="screen"><div class="screen-title"><div><h1>Verzameling</h1><p id="compStats"></p></div><button class="ghost" onclick="show('title')">TERUG</button></div><div id="compCards" class="cards wrap"></div></section>
+<section id="gameover" class="screen modal-screen"><h1 id="overTitle"></h1><p id="summary"></p><button onclick="show('select')">NIEUWE RUN</button></section>
+</main><script src="game.js"></script></body></html>
