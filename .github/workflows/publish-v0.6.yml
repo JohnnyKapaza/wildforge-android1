@@ -1,0 +1,30 @@
+name: Publish Wildforge v0.6
+on:
+  push:
+    branches: ["codex/v0.6"]
+    paths: [".github/workflows/publish-v0.6.yml"]
+permissions:
+  contents: write
+  actions: read
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download verified APK artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p release
+          gh run download 34883315335 --repo "${{ github.repository }}" --name Wildforge-v0.6-cinematic-combat --dir release
+          mv release/app-debug.apk release/Wildforge-v0.6.apk
+          test -s release/Wildforge-v0.6.apk
+      - name: Publish permanent v0.6 download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.6 --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload v0.6 release/Wildforge-v0.6.apk --repo "${{ github.repository }}" --clobber
+          else
+            gh release create v0.6 release/Wildforge-v0.6.apk --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "Wildforge v0.6 — Cinematic Combat" --notes "Vier nieuwe helden, twaalf handgeschilderde vijanden, premium kaarten en volledig geanimeerde gevechten. Debug-APK voor directe installatie op Android."
+          fi
