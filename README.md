@@ -1,12 +1,12 @@
 # Wildforge: Hearts of the Hollow
 
-Original Android roguelike deckbuilder with four playable creatures, 196 cards, branching act maps, enemies, elites, events, shops, rest sites, relics and 21 Wildheid levels.
+Original Android landscape roguelike deckbuilder.
 
-## v0.3
-- Forced Android landscape layout
-- Branching three-lane route map
-- Full physical card presentation
-- Targeted attacks, enemy intents, draw/discard piles and combat statuses
-- New cinematic Wildforge arena art
-
-Download the latest APK from **Actions → latest successful Build Wildforge APK → Artifacts**.
+## v0.4
+- Encounters with one to four enemies at once
+- 72 enemy variants and 12 new original monster designs
+- Striker, guard, poisoner, healer, buffer, debuffer, summoner and exploder AI
+- Individual enemy intents, HP, block, strength and poison
+- Target selection, AOE cards, Exhaust and potions
+- Procedural combat sound effects
+- 228 cards, four heroes, three acts, branching map, elites, shops, events, rest sites, bosses, relics and 21 Wildheid levels
