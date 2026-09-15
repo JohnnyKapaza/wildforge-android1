@@ -16,6 +16,11 @@ public class MainActivity extends BridgeActivity {
     private static final String TAG = "WildforgeBoot";
     private static final String BOOT_PREFS = "wildforge_boot";
     private static final String LAST_VERSION = "last_version";
+    private static final int MAX_BOOT_CHECKS = 45;
+    private static final long BOOT_CHECK_INTERVAL_MS = 2000;
+
+    private final Handler bootHandler = new Handler(Looper.getMainLooper());
+    private int bootCheckCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -27,7 +32,7 @@ public class MainActivity extends BridgeActivity {
 
         if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             WebView.setWebContentsDebuggingEnabled(true);
-            new Handler(Looper.getMainLooper()).postDelayed(this::reportBootState, 8000);
+            bootHandler.postDelayed(this::reportBootState, BOOT_CHECK_INTERVAL_MS);
         }
     }
 
@@ -65,10 +70,28 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void reportBootState() {
-        if (isFinishing() || getBridge() == null || getBridge().getWebView() == null) return;
+        if (isFinishing()) return;
+        if (getBridge() == null || getBridge().getWebView() == null) {
+            scheduleNextBootCheck();
+            return;
+        }
         getBridge().getWebView().evaluateJavascript(
-            "document.body.classList.contains('wildforge-ready')?'WILDFORGE_READY':'WILDFORGE_NOT_READY'",
-            value -> Log.i(TAG, "state=" + value)
+            "document.body&&document.body.classList.contains('wildforge-ready')?'WILDFORGE_READY':'WILDFORGE_NOT_READY'",
+            value -> {
+                Log.i(TAG, "state=" + value);
+                if (value == null || !value.contains("\"WILDFORGE_READY\"")) {
+                    scheduleNextBootCheck();
+                }
+            }
         );
+    }
+
+    private void scheduleNextBootCheck() {
+        bootCheckCount++;
+        if (bootCheckCount >= MAX_BOOT_CHECKS) {
+            Log.e(TAG, "state=WILDFORGE_BOOT_TIMEOUT");
+            return;
+        }
+        bootHandler.postDelayed(this::reportBootState, BOOT_CHECK_INTERVAL_MS);
     }
 }

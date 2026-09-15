@@ -120,6 +120,12 @@ jobs:
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/heroes-v6.png'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/enemies-v6.png'
 
+      - name: Enable Android emulator acceleration
+        run: |
+          if [ -e /dev/kvm ]; then
+            sudo chmod 0666 /dev/kvm
+          fi
+
       - name: Test startup in an Android emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -133,15 +139,22 @@ jobs:
             adb logcat -c
             adb shell am force-stop com.johnnydebaets.wildforge
             adb shell am start -W -n com.johnnydebaets.wildforge/.MainActivity | tee /tmp/wildforge-start.txt
-            sleep 12
+            ready=0
+            for attempt in $(seq 1 45); do
+              if adb logcat -d -s WildforgeBoot:I '*:S' | grep -q 'WILDFORGE_READY'; then
+                ready=1
+                break
+              fi
+              sleep 2
+            done
             adb shell pidof com.johnnydebaets.wildforge | tee /tmp/wildforge-pid.txt
-            adb shell uiautomator dump /sdcard/wildforge-window.xml || true
-            adb pull /sdcard/wildforge-window.xml /tmp/wildforge-window.xml || true
+            adb shell uiautomator dump /data/local/tmp/wildforge-window.xml || true
+            adb pull /data/local/tmp/wildforge-window.xml /tmp/wildforge-window.xml || true
             adb exec-out screencap -p > /tmp/wildforge-startup.png
             adb logcat -d | tee /tmp/wildforge-logcat.txt
             test -s /tmp/wildforge-pid.txt
             ! grep -q 'FATAL EXCEPTION.*main' /tmp/wildforge-logcat.txt
-            grep -q 'WILDFORGE_READY' /tmp/wildforge-logcat.txt
+            test "$ready" -eq 1
 
       - name: Upload startup diagnostics
         if: always()
