@@ -3,6 +3,7 @@ package com.johnnydebaets.wildforge;
 import android.graphics.Color;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.pm.ApplicationInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -24,7 +25,7 @@ public class MainActivity extends BridgeActivity {
         getWindow().setNavigationBarColor(Color.rgb(5, 7, 10));
         clearStaleWebAssetsAfterUpdate();
 
-        if (BuildConfig.DEBUG) {
+        if ((getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
             WebView.setWebContentsDebuggingEnabled(true);
             new Handler(Looper.getMainLooper()).postDelayed(this::reportBootState, 8000);
         }
@@ -33,7 +34,7 @@ public class MainActivity extends BridgeActivity {
     private void clearStaleWebAssetsAfterUpdate() {
         SharedPreferences preferences = getSharedPreferences(BOOT_PREFS, Context.MODE_PRIVATE);
         String previousVersion = preferences.getString(LAST_VERSION, null);
-        String currentVersion = BuildConfig.VERSION_NAME;
+        String currentVersion = currentVersionName();
         preferences.edit().putString(LAST_VERSION, currentVersion).apply();
 
         if (previousVersion == null || previousVersion.equals(currentVersion) ||
@@ -49,6 +50,18 @@ public class MainActivity extends BridgeActivity {
             "}finally{location.reload();}})()",
             value -> Log.i(TAG, "stale web cache cleared for " + currentVersion)
         ), 700);
+    }
+
+    private String currentVersionName() {
+        try {
+            String versionName = getPackageManager()
+                .getPackageInfo(getPackageName(), 0)
+                .versionName;
+            return versionName == null ? "unknown" : versionName;
+        } catch (Exception error) {
+            Log.w(TAG, "could not resolve app version", error);
+            return "unknown";
+        }
     }
 
     private void reportBootState() {
