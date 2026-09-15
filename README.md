@@ -2,6 +2,11 @@
 
 Original Android landscape roguelike deckbuilder.
 
+## v0.6.2
+- Fixes the cinematic background layer that covered the complete title interface on real phones
+- Boot validation now rejects a running-but-invisible menu instead of reporting a false ready state
+- Visible title-shell regression test added before every APK release
+
 ## v0.6.1
 - Native-feeling loading screen that stays visible until the game engine is ready
 - Startup error boundary with **Herstel & herstart** and **Start veilig**

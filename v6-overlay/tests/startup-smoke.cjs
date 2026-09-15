@@ -5,6 +5,12 @@ const vm = require('vm');
 const publicDir = process.argv[2];
 if (!publicDir) throw new Error('Pass the generated public directory as the first argument.');
 
+const v6Css = fs.readFileSync(path.join(publicDir, 'v6.css'), 'utf8');
+const shellRule = v6Css.match(/body\.wildforge-v6:before\s*\{([^}]*)\}/);
+if (!shellRule || !/z-index:\s*-1\b/.test(shellRule[1])) {
+  throw new Error('The cinematic background must stay behind the game interface.');
+}
+
 class ClassList {
   constructor(seed = '') { this.values = new Set(seed.split(/\s+/).filter(Boolean)); }
   add(...values) { values.forEach(value => this.values.add(value)); }
@@ -103,6 +109,14 @@ const context = {
   removeEventListener() {}
 };
 context.window = context;
+context.getComputedStyle = (element, pseudo) => {
+  if (element === body && pseudo === '::before') return { zIndex: '-1' };
+  return {
+    display: element.classList.contains('screen') && !element.classList.contains('active') ? 'none' : 'flex',
+    visibility: 'visible',
+    opacity: '1'
+  };
+};
 vm.createContext(context);
 
 for (const name of ['boot.js', 'game.js', 'v6.js']) {
@@ -120,6 +134,7 @@ assert(
     ', heroes=' + document.querySelectorAll('#heroes .hero').length +
     ', markup=' + elements.heroes.innerHTML.slice(0, 120)
 );
+assert(context.WildforgeBoot.visible(), 'The title interface is not visibly ready.');
 vm.runInContext("show('select')", context);
 assert(elements.select.classList.contains('active'), 'New-run screen did not open.');
 vm.runInContext('start(0)', context);

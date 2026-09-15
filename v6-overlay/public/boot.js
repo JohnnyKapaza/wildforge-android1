@@ -34,6 +34,22 @@
       heroes.length === 4;
   }
 
+  function visualShellIsReady() {
+    var title = document.getElementById('title');
+    if (!title || !title.classList.contains('active')) return false;
+    if (typeof window.getComputedStyle !== 'function') return true;
+
+    var style = window.getComputedStyle(title);
+    var cover = window.getComputedStyle(document.body, '::before');
+    var coverZ = parseInt(cover && cover.zIndex, 10);
+    var bounds = title.getBoundingClientRect();
+    return style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      style.opacity !== '0' &&
+      bounds.width > 0 && bounds.height > 0 &&
+      (!Number.isFinite(coverZ) || coverZ <= 0);
+  }
+
   function addSafeModeBadge() {
     if (!safeMode || document.getElementById('safeModeBadge')) return;
     var badge = document.createElement('button');
@@ -48,6 +64,10 @@
     if (finished) return;
     if (!coreIsReady()) {
       fail(new Error('De spelkern antwoordt niet.'), 'De engine kon niet starten');
+      return;
+    }
+    if (!visualShellIsReady()) {
+      fail(new Error('Een visuele laag bedekt het startmenu.'), 'De interface kon niet verschijnen');
       return;
     }
     finished = true;
@@ -112,6 +132,7 @@
     stage: stage,
     ready: ready,
     fail: fail,
+    visible: visualShellIsReady,
     retry: function () { reloadWithMode(false); },
     safe: function () { reloadWithMode(true); }
   };
