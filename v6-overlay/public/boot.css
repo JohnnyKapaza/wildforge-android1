@@ -1,0 +1,145 @@
+#bootScreen {
+  position: fixed;
+  inset: 0;
+  z-index: 20000;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  color: #f8edda;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(255, 170, 53, .16), transparent 28%),
+    radial-gradient(ellipse at 50% 58%, rgba(58, 181, 206, .09), transparent 52%),
+    #05070a;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity .35s ease, visibility .35s ease;
+}
+#bootScreen::before,
+#bootScreen::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: min(47vw, 410px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 211, 108, .16);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: bootRune 9s linear infinite;
+}
+#bootScreen::after {
+  width: min(35vw, 305px);
+  border-style: dashed;
+  border-color: rgba(118, 230, 255, .16);
+  animation-direction: reverse;
+  animation-duration: 13s;
+}
+.boot-panel {
+  position: relative;
+  z-index: 1;
+  width: min(78vw, 520px);
+  text-align: center;
+}
+.boot-sigil {
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 16px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 211, 108, .55);
+  border-radius: 50%;
+  color: #ffd36c;
+  font: 900 38px/1 serif;
+  text-shadow: 0 0 18px rgba(255, 158, 45, .8);
+  box-shadow: inset 0 0 22px rgba(255, 158, 45, .11), 0 0 24px rgba(255, 158, 45, .1);
+  animation: bootPulse 1.8s ease-in-out infinite;
+}
+#bootTitle {
+  margin: 0;
+  color: #fff0ca;
+  font: 900 clamp(28px, 7vw, 52px)/1 system-ui, sans-serif;
+  letter-spacing: .16em;
+  text-indent: .16em;
+  text-shadow: 0 3px 18px #000, 0 0 24px rgba(255, 183, 68, .22);
+}
+.boot-subtitle {
+  margin: 7px 0 20px;
+  color: #b9b1a5;
+  font: 700 10px/1.2 system-ui, sans-serif;
+  letter-spacing: .34em;
+  text-indent: .34em;
+}
+.boot-track {
+  height: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .045);
+}
+#bootProgress {
+  display: block;
+  width: 12%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #925018, #ffd36c, #76e6ff);
+  box-shadow: 0 0 14px rgba(255, 211, 108, .65);
+  transition: width .38s ease;
+}
+#bootMessage {
+  min-height: 32px;
+  margin: 12px 0 0;
+  color: #c9c5bc;
+  white-space: pre-line;
+  font: 600 12px/1.45 system-ui, sans-serif;
+  letter-spacing: .05em;
+}
+#bootActions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+#bootActions[hidden] { display: none; }
+#bootActions button,
+#safeModeBadge {
+  appearance: none;
+  border: 1px solid rgba(255, 211, 108, .5);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #fff0ca;
+  background: rgba(18, 15, 12, .9);
+  font: 800 10px/1 system-ui, sans-serif;
+  letter-spacing: .1em;
+}
+#bootActions button:last-child {
+  border-color: rgba(118, 230, 255, .45);
+  color: #9deeff;
+}
+#bootScreen.boot-error .boot-sigil {
+  color: #ff8175;
+  border-color: rgba(255, 91, 75, .58);
+  text-shadow: 0 0 18px rgba(255, 72, 52, .8);
+}
+#bootScreen.boot-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+#safeModeBadge {
+  position: fixed;
+  right: 8px;
+  bottom: 8px;
+  z-index: 12000;
+  padding: 7px 9px;
+  border-color: rgba(118, 230, 255, .35);
+  color: #9deeff;
+  background: rgba(4, 8, 12, .88);
+  font-size: 8px;
+}
+@keyframes bootRune { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes bootPulse {
+  50% { transform: scale(1.07); filter: brightness(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #bootScreen::before, #bootScreen::after, .boot-sigil { animation: none; }
+}

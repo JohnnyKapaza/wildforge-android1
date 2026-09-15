@@ -1,6 +1,15 @@
 (function(){
 'use strict';
 
+var boot=window.WildforgeBoot||null;
+if(boot&&boot.safeMode){
+  boot.ready('Veilige spelkern gereed');
+  return;
+}
+
+try{
+if(boot)boot.stage('Cinematische engine laden…',52);
+
 var sleep=function(ms){return new Promise(function(resolve){setTimeout(resolve,ms);});};
 var phaseToken=0;
 
@@ -285,4 +294,11 @@ window.addEventListener('load',function(){
   refreshRoster();
   document.body.classList.add('wildforge-v6');
 });
+
+document.body.classList.add('wildforge-v6');
+if(boot)boot.ready('De Hollow ontwaakt');
+}catch(error){
+  if(boot)boot.fail(error,'De cinematische engine kon niet starten');
+  else throw error;
+}
 })();

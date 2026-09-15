@@ -2,6 +2,14 @@
 
 Original Android landscape roguelike deckbuilder.
 
+## v0.6.1
+- Native-feeling loading screen that stays visible until the game engine is ready
+- Startup error boundary with **Herstel & herstart** and **Start veilig**
+- Automatic cleanup of stale WebView service-worker caches after an update
+- Android WebView startup state reported by the native activity
+- Real launch smoke test on an Android 15 emulator before release
+- Versioned permanent APK release so a broken build is never published silently
+
 ## v0.6
 - Vier volledig nieuwe speelbare helden: Vexa, Myr, Korr en Zhar
 - Handgeschilderde transparante helden- en vijandensprites

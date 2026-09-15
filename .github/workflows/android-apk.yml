@@ -1,14 +1,14 @@
-name: Build Wildforge v0.6 APK
+name: Build Wildforge v0.6.1 APK
 on:
   workflow_dispatch:
   push:
     branches: [main, "codex/**"]
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -17,9 +17,11 @@ jobs:
           cat bundle-v5/part-* | base64 -d > apk-source.zip
           unzip -q apk-source.zip
 
-      - name: Apply v0.6 cinematic combat overlay
+      - name: Apply v0.6.1 boot-safe combat overlay
         run: |
           cp -R v6-overlay/public/. android/app/src/main/assets/public/
+          cp v6-overlay/android/MainActivity.java android/app/src/main/java/com/johnnydebaets/wildforge/MainActivity.java
+          cp v6-overlay/android/styles.xml android/app/src/main/res/values/styles.xml
           python3 - <<'PY'
           from pathlib import Path
           import re
@@ -27,36 +29,70 @@ jobs:
           public = Path("android/app/src/main/assets/public")
           index_path = public / "index.html"
           index = index_path.read_text()
+          if 'href="boot.css"' not in index:
+              index = index.replace(
+                  '<link rel="manifest" href="manifest.webmanifest">',
+                  '<link rel="manifest" href="manifest.webmanifest"><link rel="stylesheet" href="boot.css">'
+              )
           if 'href="v6.css"' not in index:
               index = index.replace(
                   '<link rel="stylesheet" href="combat.css">',
                   '<link rel="stylesheet" href="combat.css"><link rel="stylesheet" href="v6.css">'
               )
-          if 'id="fxLayer"' not in index:
+          if 'id="bootScreen"' not in index:
+              boot = (
+                  '<div id="bootScreen" role="status" aria-live="polite">'
+                  '<div class="boot-panel"><div class="boot-sigil">✦</div>'
+                  '<h1 id="bootTitle">WILDFORGE</h1>'
+                  '<p class="boot-subtitle">HEARTS OF THE HOLLOW</p>'
+                  '<div class="boot-track"><i id="bootProgress"></i></div>'
+                  '<p id="bootMessage">De Hollow ontwaakt…</p>'
+                  '<div id="bootActions" hidden>'
+                  '<button type="button" onclick="WildforgeBoot.retry()">HERSTEL & HERSTART</button>'
+                  '<button type="button" onclick="WildforgeBoot.safe()">START VEILIG</button>'
+                  '</div></div></div>'
+              )
+              index = index.replace('<body>', '<body>' + boot)
+          if 'src="boot.js"' not in index:
               index = index.replace(
                   '</main><script src="game.js"></script>',
-                  '</main><div id="fxLayer" aria-hidden="true"></div><script src="game.js"></script><script src="v6.js"></script>'
+                  '</main><div id="fxLayer" aria-hidden="true"></div>'
+                  '<script src="boot.js"></script><script src="game.js"></script><script src="v6.js"></script>'
               )
           index_path.write_text(index)
 
-          sw = """const C='wildforge-v6',F=['./','index.html','style.css','combat.css','v6.css','game.js','v6.js','manifest.webmanifest','assets/creatures.png','assets/enemies-v2.webp','assets/enemies-v6.png','assets/heroes-v6.png','assets/battle-bg.webp'];self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));"""
+          game_path = public / "game.js"
+          game = game_path.read_text()
+          game = game.replace(
+              "if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js')",
+              "if('serviceWorker'in navigator&&!/; wv\\)/.test(navigator.userAgent))navigator.serviceWorker.register('sw.js')"
+          )
+          game = game.replace("}init();", "}init();window.WILDFORGE_CORE_READY=true;")
+          game_path.write_text(game)
+
+          sw = """const C='wildforge-v061',F=['./','index.html','boot.css','style.css','combat.css','v6.css','boot.js','game.js','v6.js','manifest.webmanifest','assets/creatures.png','assets/enemies-v2.webp','assets/enemies-v6.png','assets/heroes-v6.png','assets/battle-bg.webp'];self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));"""
           (public / "sw.js").write_text(sw)
 
           gradle_path = Path("android/app/build.gradle")
           gradle = gradle_path.read_text()
-          gradle = re.sub(r'versionCode\s+\d+', 'versionCode 6', gradle)
-          gradle = re.sub(r'versionName\s+"[^"]+"', 'versionName "0.6"', gradle)
+          gradle = re.sub(r'versionCode\s+\d+', 'versionCode 7', gradle)
+          gradle = re.sub(r'versionName\s+"[^"]+"', 'versionName "0.6.1"', gradle)
           gradle_path.write_text(gradle)
           PY
 
       - name: Validate web game
         run: |
+          node --check android/app/src/main/assets/public/boot.js
           node --check android/app/src/main/assets/public/game.js
           node --check android/app/src/main/assets/public/v6.js
+          grep -q 'bootScreen' android/app/src/main/assets/public/index.html
+          grep -q 'boot.js' android/app/src/main/assets/public/index.html
           grep -q 'v6.css' android/app/src/main/assets/public/index.html
           grep -q 'v6.js' android/app/src/main/assets/public/index.html
+          grep -q 'WILDFORGE_READY' android/app/src/main/java/com/johnnydebaets/wildforge/MainActivity.java
           test -s android/app/src/main/assets/public/assets/heroes-v6.png
           test -s android/app/src/main/assets/public/assets/enemies-v6.png
+          node v6-overlay/tests/startup-smoke.cjs android/app/src/main/assets/public
 
       - uses: actions/setup-java@v5
         with:
@@ -75,14 +111,63 @@ jobs:
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Verify packaged v0.6 assets
+      - name: Verify packaged v0.6.1 assets
         run: |
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/boot.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/v6.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/heroes-v6.png'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/enemies-v6.png'
 
+      - name: Test startup in an Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -noaudio -no-boot-anim -gpu swiftshader_indirect
+          script: |
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+            adb logcat -c
+            adb shell am force-stop com.johnnydebaets.wildforge
+            adb shell am start -W -n com.johnnydebaets.wildforge/.MainActivity | tee /tmp/wildforge-start.txt
+            sleep 12
+            adb shell pidof com.johnnydebaets.wildforge | tee /tmp/wildforge-pid.txt
+            adb shell uiautomator dump /sdcard/wildforge-window.xml || true
+            adb pull /sdcard/wildforge-window.xml /tmp/wildforge-window.xml || true
+            adb exec-out screencap -p > /tmp/wildforge-startup.png
+            adb logcat -d | tee /tmp/wildforge-logcat.txt
+            test -s /tmp/wildforge-pid.txt
+            ! grep -q 'FATAL EXCEPTION.*main' /tmp/wildforge-logcat.txt
+            grep -q 'WILDFORGE_READY' /tmp/wildforge-logcat.txt
+
+      - name: Upload startup diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wildforge-v0.6.1-startup-diagnostics
+          path: |
+            /tmp/wildforge-start.txt
+            /tmp/wildforge-pid.txt
+            /tmp/wildforge-window.xml
+            /tmp/wildforge-startup.png
+            /tmp/wildforge-logcat.txt
+          if-no-files-found: warn
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Wildforge-v0.6-cinematic-combat
+          name: Wildforge-v0.6.1-startup-fix
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
+
+      - name: Publish permanent v0.6.1 download
+        if: github.ref == 'refs/heads/codex/v0.6'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk Wildforge-v0.6.1.apk
+          if gh release view v0.6.1 --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload v0.6.1 Wildforge-v0.6.1.apk --repo "${{ github.repository }}" --clobber
+          else
+            gh release create v0.6.1 Wildforge-v0.6.1.apk --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "Wildforge v0.6.1 — Startup Fix" --notes "Betrouwbare loading screen, automatische bootcontrole, cacheherstel, veilige modus en een geslaagde Android-emulatortest."
+          fi
