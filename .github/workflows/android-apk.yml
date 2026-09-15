@@ -1,4 +1,4 @@
-name: Build Wildforge v0.6.2 APK
+name: Build Wildforge v0.7 APK
 on:
   workflow_dispatch:
   push:
@@ -17,7 +17,7 @@ jobs:
           cat bundle-v5/part-* | base64 -d > apk-source.zip
           unzip -q apk-source.zip
 
-      - name: Apply v0.6.2 visible-shell overlay
+      - name: Apply v0.7 world-and-arena overlay
         run: |
           cp -R v6-overlay/public/. android/app/src/main/assets/public/
           cp v6-overlay/android/MainActivity.java android/app/src/main/java/com/johnnydebaets/wildforge/MainActivity.java
@@ -39,6 +39,11 @@ jobs:
                   '<link rel="stylesheet" href="combat.css">',
                   '<link rel="stylesheet" href="combat.css"><link rel="stylesheet" href="v6.css">'
               )
+          if 'href="v7.css"' not in index:
+              index = index.replace(
+                  '<link rel="stylesheet" href="v6.css">',
+                  '<link rel="stylesheet" href="v6.css"><link rel="stylesheet" href="v7.css">'
+              )
           if 'id="bootScreen"' not in index:
               boot = (
                   '<div id="bootScreen" role="status" aria-live="polite">'
@@ -54,11 +59,55 @@ jobs:
               )
               index = index.replace('<body>', '<body>' + boot)
           if 'src="boot.js"' not in index:
+              fx_layer = '' if 'id="fxLayer"' in index else '<div id="fxLayer" aria-hidden="true"></div>'
               index = index.replace(
                   '</main><script src="game.js"></script>',
-                  '</main><div id="fxLayer" aria-hidden="true"></div>'
+                  '</main>' + fx_layer +
                   '<script src="boot.js"></script><script src="game.js"></script><script src="v6.js"></script>'
               )
+          if 'src="v7.js"' not in index:
+              index = index.replace(
+                  '<script src="v6.js"></script>',
+                  '<script src="v6.js"></script><script src="v7.js"></script>'
+              )
+
+          # The source bundle may already contain an older overlay from a previous
+          # build. Keep exactly one copy of each late overlay and preserve the
+          # required game -> v6 -> v7 execution order.
+          index = re.sub(r'<script src="(?:v6|v7)\.js"></script>', '', index)
+          index = index.replace(
+              '</body>',
+              '<script src="v6.js"></script><script src="v7.js"></script></body>'
+          )
+
+          shop_pattern = re.compile(r'<section id="shop" class="screen">.*?</section>', re.S)
+          shop_markup = (
+              '<section id="shop" class="screen">'
+              '<header class="shop-hud"><b>De Kraaienkoopman</b><span class="shop-purse">◈ <b id="shopGold"></b> AMBER</span></header>'
+              '<div class="shop-scene">'
+              '<aside class="merchant-panel"><div class="merchant-emblem">♛</div><small>HANDELAAR VAN HET HOLLOW</small>'
+              '<h1>De Kraaienkoopman</h1><p>Kaarten, relieken en tonica. Wat verkocht is, blijft verkocht.</p>'
+              '<p class="shop-rule">Kies zorgvuldig: deze voorraad verandert pas wanneer je vertrekt.</p>'
+              '<button class="ghost shop-leave" onclick="leaveNode()">VERLAAT DE BAZAAR</button></aside>'
+              '<div class="shop-market"><div class="shop-heading"><div><small>VASTE VOORRAAD</small><h2>Kaarten & Curiosa</h2></div>'
+              '<span id="shopNotice" class="shop-notice"></span></div><div id="wares" class="shop-wares"></div>'
+              '<div class="shop-service-grid"><article id="relicOffer" class="shop-service"></article>'
+              '<article id="potionOffer" class="shop-service"></article>'
+              '<article id="removalOffer" class="shop-service removal-service"><span class="service-icon">✧</span>'
+              '<div><small>DECK ZUIVEREN</small><h3>Verwijder een kaart</h3><p>Kies zelf welke kaart permanent verdwijnt.</p></div>'
+              '<button onclick="removeCardShop()"><span id="removeCost"></span> ◈</button></article></div></div></div>'
+              '<div id="shopRemoveModal" class="shop-remove-modal" hidden><div><small>DECK ZUIVEREN</small>'
+              '<h2>Kies een kaart</h2><p>Deze kaart verdwijnt permanent uit je deck.</p></div>'
+              '<div id="shopRemoveCards" class="shop-remove-cards"></div>'
+              '<button class="ghost" onclick="closeShopRemove()">ANNULEREN</button></div></section>'
+          )
+          index, shop_count = shop_pattern.subn(shop_markup, index, count=1)
+          if shop_count != 1:
+              raise RuntimeError('Shop markup was not found exactly once')
+          index = index.replace(
+              'Kies je route. Alleen verbonden kamers zijn bereikbaar.',
+              'Klim van onder naar boven. Alleen verbonden kamers zijn bereikbaar.'
+          )
           index_path.write_text(index)
 
           game_path = public / "game.js"
@@ -70,13 +119,13 @@ jobs:
           game = game.replace("}init();", "}init();window.WILDFORGE_CORE_READY=true;")
           game_path.write_text(game)
 
-          sw = """const C='wildforge-v062',F=['./','index.html','boot.css','style.css','combat.css','v6.css','boot.js','game.js','v6.js','manifest.webmanifest','assets/creatures.png','assets/enemies-v2.webp','assets/enemies-v6.png','assets/heroes-v6.png','assets/battle-bg.webp'];self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));"""
+          sw = """const C='wildforge-v070',F=['./','index.html','boot.css','style.css','combat.css','v6.css','v7.css','boot.js','game.js','v6.js','v7.js','manifest.webmanifest','assets/creatures.png','assets/enemies-v2.webp','assets/enemies-v6.png','assets/heroes-v6.png','assets/battle-bg.webp'];self.addEventListener('install',e=>e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting())));self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim())));self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));"""
           (public / "sw.js").write_text(sw)
 
           gradle_path = Path("android/app/build.gradle")
           gradle = gradle_path.read_text()
-          gradle = re.sub(r'versionCode\s+\d+', 'versionCode 8', gradle)
-          gradle = re.sub(r'versionName\s+"[^"]+"', 'versionName "0.6.2"', gradle)
+          gradle = re.sub(r'versionCode\s+\d+', 'versionCode 9', gradle)
+          gradle = re.sub(r'versionName\s+"[^"]+"', 'versionName "0.7"', gradle)
           gradle_path.write_text(gradle)
           PY
 
@@ -85,10 +134,14 @@ jobs:
           node --check android/app/src/main/assets/public/boot.js
           node --check android/app/src/main/assets/public/game.js
           node --check android/app/src/main/assets/public/v6.js
+          node --check android/app/src/main/assets/public/v7.js
           grep -q 'bootScreen' android/app/src/main/assets/public/index.html
           grep -q 'boot.js' android/app/src/main/assets/public/index.html
           grep -q 'v6.css' android/app/src/main/assets/public/index.html
           grep -q 'v6.js' android/app/src/main/assets/public/index.html
+          grep -q 'v7.css' android/app/src/main/assets/public/index.html
+          grep -q 'v7.js' android/app/src/main/assets/public/index.html
+          grep -q 'shopRemoveModal' android/app/src/main/assets/public/index.html
           grep -q 'WILDFORGE_READY' android/app/src/main/java/com/johnnydebaets/wildforge/MainActivity.java
           test -s android/app/src/main/assets/public/assets/heroes-v6.png
           test -s android/app/src/main/assets/public/assets/enemies-v6.png
@@ -113,10 +166,12 @@ jobs:
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
 
-      - name: Verify packaged v0.6.2 assets
+      - name: Verify packaged v0.7 assets
         run: |
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/boot.js'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/v6.js'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/v7.js'
+          unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/v7.css'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/heroes-v6.png'
           unzip -l android/app/build/outputs/apk/debug/app-debug.apk | grep -q 'assets/public/assets/enemies-v6.png'
 
@@ -153,7 +208,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Wildforge-v0.6.2-startup-diagnostics
+          name: Wildforge-v0.7-startup-diagnostics
           path: |
             /tmp/wildforge-start.txt
             /tmp/wildforge-pid.txt
@@ -164,18 +219,18 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Wildforge-v0.6.2-visible-menu
+          name: Wildforge-v0.7-arena-map-shop
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
 
-      - name: Publish permanent v0.6.2 download
+      - name: Publish permanent v0.7 download
         if: github.ref == 'refs/heads/codex/v0.6'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/debug/app-debug.apk Wildforge-v0.6.2.apk
-          if gh release view v0.6.2 --repo "${{ github.repository }}" >/dev/null 2>&1; then
-            gh release upload v0.6.2 Wildforge-v0.6.2.apk --repo "${{ github.repository }}" --clobber
+          cp android/app/build/outputs/apk/debug/app-debug.apk Wildforge-v0.7.apk
+          if gh release view v0.7 --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload v0.7 Wildforge-v0.7.apk --repo "${{ github.repository }}" --clobber
           else
-            gh release create v0.6.2 Wildforge-v0.6.2.apk --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "Wildforge v0.6.2 — Visible Menu Fix" --notes "De cinematische achtergrond blijft achter de interface. De bootcontrole valideert nu zowel de spelkern als een zichtbaar startmenu vóór publicatie."
+            gh release create v0.7 Wildforge-v0.7.apk --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "Wildforge v0.7 — Arena & Worldmap" --notes "Nieuwe links/rechts-arena zonder overlappende personages, een vertakkende wereldkaart van onder naar boven, een vaste bazaarvoorraad met relieken en drankjes, en vrije kaartverwijdering. Getest in een Android 15-emulator."
           fi

@@ -296,7 +296,7 @@ window.addEventListener('load',function(){
 });
 
 document.body.classList.add('wildforge-v6');
-if(boot)boot.ready('De Hollow ontwaakt');
+if(boot)boot.stage('Arena, wereldkaart en bazaar bouwen…',78);
 }catch(error){
   if(boot)boot.fail(error,'De cinematische engine kon niet starten');
   else throw error;

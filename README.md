@@ -2,6 +2,12 @@
 
 Original Android landscape roguelike deckbuilder.
 
+## v0.7
+- Arena combat keeps the hero in a protected left lane and the enemy formation on the right
+- Vertical bottom-to-top route map with connected floors and a dedicated boss floor
+- Bazaar with fixed card stock, relics, potions and deliberate deck removal
+- Versioned WebView cache and single-load overlay checks for the Android build
+
 ## v0.6.2
 - Fixes the cinematic background layer that covered the complete title interface on real phones
 - Boot validation now rejects a running-but-invisible menu instead of reporting a false ready state
